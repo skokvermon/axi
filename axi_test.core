@@ -11,6 +11,7 @@ filesets:
     file_type : systemVerilogSource
     depend :
       - ">=pulp-platform.org::common_verification:0.2.1"
+      - pulp-platform.org::axi:0.39.1
 targets:
   default:
     filesets : [bench]

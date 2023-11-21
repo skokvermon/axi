@@ -7,11 +7,136 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
-### Added
+## 0.39.1 - 2023-09-05
 
-### Changed
+### Added
+- `axi_cdc`: Add `SyncStages` parameter.
+- `axi_to_mem_interleaved`: Add interface variant.
+- `axi_burst_splitter`: Expose `id_queue`'s `FULL_BW` parameter.
+- `axi_chan_compare`: Add parameter to allow reordered transactions.
+- Add `AXI_HIGHLIGHT` macro to highlight AXI signals.
+- Add flat port instantiation macros.
 
 ### Fixed
+- `axi_test`: Avoid false negatives for misaligned reads in `axi_scoreboard`.
+- `axi_to_detailed_mem`: Ensure proper propagation or `err` and `exokay` signals.
+
+## 0.39.0 - 2023-07-20
+
+### Added
+- Synthesizable IPs:
+  - `axi_bus_compare` and `axi_slave_compare`; two synthesizable verification IPs meant to be used
+    to compare two AXI buses on an FPGA.
+  - `axi_lite_from_mem` and `axi_from_mem` acting like SRAMs making AXI4 requests downstream.
+  - `axi_lite_dw_converter`: Convert the data width of AXI4-Lite transactions. Emits the
+     appropriate amount of downstream transactions to perform the whole requested access.
+  - `axi_rw_join` and `axi_rw_split` to split/join the read and write channels of an AXI bus.
+- `CT`-macros allowing to instantiate AXI structs with custom channel type names.
+- `axi_pkg': Add documentation to `xbar_cfg_t`.
+- Testbench IPs:
+  - `axi_chan_compare.sv`: Non-synthesizable module comparing two AXI channels of the same type
+  - Add `axi_file_master` to `axi_test`, allowing file-based AXI verification approaches.
+  - Add `#_width` functions to `axi_test` returning the width of the AXI channels.
+
+### Changed
+- Synthesizable IPs:
+  - `axi_demux`: Replace FIFO between AW and W channel by a register plus a counter.  This prevents
+    AWs from being issued to one master port while Ws from another burst are ongoing to another
+    master port.  This is required to prevents deadlocks due to circular waits downstream. Removes
+    `FallThrough` parameter from `axi_demux`.
+  - Split the `axi_demux` logic and timing decoupling. A new module called `axi_demux_simple` contains
+    the core logic.
+  - `axi_dw_downsizer` uses `axi_pkg::RESP_EXOKAY` as a default value.
+  - Simplify the `casez` in `axi_id_remap`.
+  - Add optional explicit mapping to the `axi_id_serialize` module.
+  - Expand `axi_to_mem` to `axi_to_detailed_mem` exposing all of AXI's side-signals; namely `id`, `user`,
+    `cache`, `prot`, `qos`, `region`, `atop`. Add possibility to inject `err` and `exokay`.
+  - `axi_xbar`: Add parameter `PipelineStages` to `axi_pkg::xbar_cfg_t`. This adds `axi_multicuts`
+    in the crossed connections in the `xbar` between the *demuxes* and *muxes*. Improve inline
+    documentation.
+  - Move `mem_to_banks` to `common_cells`.
+- `axi_pkg`: Improve for better compatibility with *Vivado*.
+- `axi_test:
+  - `axi_lite_rand_slave`: `R` response field is now randomized.
+  - Remove excessive prints from random master and slave.
+  - Properly size-align the address.
+- `axi_pkg`: Define `localparams` to define AXI type widths.
+- Update `common_cells` from version `v1.26.0` to `v1.27.0`.
+- Tooling:
+  - Use `pulp-platform/pulp-actions/gitlab-ci@v2` in the GitHub CI to communicate with the internal CI.
+  - Bump `DC Shell version` from `2019.12` to `2022.03`
+  - No longer check *ModelSim* versions `10.7e` and `2021.3`, add `2022.3`.
+  - More thorough verification runs for the `xbar`.
+  - Start transitioning from shell script to Makefile to run simulations.
+- Use `scripts/update_authors` to update authors, slight manual fixes performed.
+
+### Fixed
+- `axi_to_mem_banked`: Reduce hardware by properly setting `UniqueIds`.
+- `axi_to_mem_interleaved` and `axi_to_mem_split` properly instantiates a demultiplexer now.
+  Adds `test_i` port for DFT.
+
+### Breaking Changes
+There are breaking changes between `v0.38.0` and `v0.39.0`:
+- `axi_demux`: `FallThrough` parameter was removed.
+- `axi_xbar`: `axi_pkg::xbar_cfg_t` added `PipelineStages` parameter.
+- `axi_to_mem_interleaved` and `axi_to_mem_split`: Added `test_i` input port.
+
+## 0.38.0 - 2022-09-28
+
+### Added
+- Add `axi_dumper` and `axi_dumper_interpret` script to dump log from an AXI bus for debugging
+  purposes.
+- Add FuseSoC and Vivado XSIM limited test to CI
+- `assign.svh`: Add macros to assign flat buses using the Vivado naming style.
+- `axi_lfsr` and `axi_lite_lfsr`: Add AXI4 and AXI4 Lite LFSR Subordinate devices.
+- `axi_xp`: Add crosspoint with homomorphous slave and master ports.
+
+### Changed
+- Improve compatibility with FuseSoC
+- Improve compatibility with Vivado XSIM
+- Performance improvements to `axi_to_mem`
+- Use `scripts/update_authors` to update authors, slight manual fixes performed.
+
+`v0.38.0` is fully **backward-compatible** to `v0.36.0` and `v0.37.0`.
+
+
+## 0.37.0 - 2022-08-30
+
+### Added
+- `axi_fifo`: Inserts a FIFO into all 5 AXI4 channels; add module and its testbench
+- `axi_test`: Add `mapped` mode to the random classes as well as additional functionality to the
+  scoreboard class.
+- `axi_throttle`: Add a module that limits the maximum number of outstanding transfers sent to the
+  downstream logic.
+- `axi_to_mem`: AXI4+ATOP slave to control on chip memory.
+- `axi_to_mem_banked`:  AXI4+ATOP slave to control on chip memory, with banking support, higher
+  throughput than `axi_to_mem`.
+- `axi_to_mem_interleaved`: AXI4+ATOP slave to control on chip memory, interleaved to prevent
+  deadlocks.
+- `axi_to_mem_split`: AXI4+ATOP slave to control memory protocol interconnect.
+- `Bender`: Add dependency `tech_cells_generic` `v0.2.2` for generic SRAM macro for simulation.
+
+### Changed
+- `axi_demux`: Add module docstring
+- `axi_sim_mem`: Add the capability to emit read and write errors
+- `Bender`: Update dependency `common_cells` to `v1.26.0` from `v1.21.0` (required by
+  `axi_throttle`)
+- Remove `docs` directory, move content to `doc` folder. `docs` is automatically created and
+  populated during the CI run.
+- Update vsim version to `2021.3` in CI, drop test for `2020.1` and `2021.1`
+
+### Fixed
+- `axi_lite_demux`: Improve compatibility with vsim version 10.7b.
+- `axi_lite_mux`: Reduce complexity of W channel at master port by removing an unnecessary
+  multiplexer.
+
+`v0.37.0` is fully **backward-compatible** to `v0.36.0`.
+
+
+## 0.36.0 - 2022-07-07
+
+### Added
+- Add Monitor modport to `AXI_BUS`, `AXI_LITE`, and `AXI_LITE_DV` interfaces.
 
 
 ## 0.35.3 - 2022-05-03
